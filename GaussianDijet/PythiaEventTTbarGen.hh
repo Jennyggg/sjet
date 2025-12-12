@@ -49,6 +49,36 @@ std::vector<Particle> getPartonsFromTTbar(Event &event){
 
 }
 
+void printFinalPariclesFromTTBar(Event &event){
+	std::vector<int> finals;
+	cout<<"Final particles from this event: "<<endl;
+	for (int i = 0; i < event.size(); ++i) {
+		auto &p = event[i];
+		if(p.isFinal()){
+			finals.push_back(i);
+			cout<<i<<" ";
+		}
+	}
+	cout<<endl;
+	cout<<"number of final particles "<<finals.size()<<endl;
+}
+
+
+std::vector<int> printFinalPartonsFromWholeEvent(Event &event){
+        std::vector<int> finals;
+        cout<<"Final partons from this event: "<<endl;
+        for (int i = 0; i < event.size(); ++i) {
+                auto &p = event[i];
+                if(p.isFinalPartonLevel()){
+                        finals.push_back(i);
+                        cout<<i<<" ";
+                }
+        }
+        cout<<endl;
+        cout<<"number of final partons from this event "<<finals.size()<<endl;
+	return finals;
+}
+
 std::vector<int> getPartonIndicesFromTTbar(Event &event){
         std::vector<int> indices;
         int iTop = 0;
@@ -93,16 +123,21 @@ std::vector<int> getPartonIndicesFromTTbar(Event &event){
 }
 void getStableDescendantsRecursive(Event& event, int iParton,std::vector<int>& products) {
     const auto& p = event[iParton];
-
-    for (int iDau = p.daughter1(); iDau <= p.daughter2(); ++iDau) {
+    std::vector<int> dau;
+    dau.push_back(p.daughter1());
+    dau.push_back(p.daughter2());
+    //cout<<"particle "<<iParton<<", idau1 "<<p.daughter1()<<", idau2 "<<p.daughter2()<<endl;
+    for (int i = 0; i <= 1; ++i) {
+	int iDau = dau[i];
         if (iDau <= 0 || iDau >= event.size()) continue;
-
+        //cout<<"daughter particle "<<iDau<<" found"<<endl;
         const auto& d = event[iDau];
-
         if (d.isFinal()) {
+	    //cout<<"daughter particle "<<iDau<<" is final"<<endl;
             products.push_back(iDau);
         }
         else {
+	    //cout<<"daughter particle "<<iDau<<" is not final, continue the chain"<<endl;
             getStableDescendantsRecursive(event, iDau, products);
         }
     }
@@ -118,8 +153,11 @@ void getStableDescendants(Event& event, int iParton,std::vector<int>& products) 
 
 void getFinalPartonDescendantsRecursive(Event& event, int iParton,std::vector<int>& products) {
     const auto& p = event[iParton];
-
-    for (int iDau = p.daughter1(); iDau <= p.daughter2(); ++iDau) {
+    std::vector<int> dau;
+    dau.push_back(p.daughter1());
+    dau.push_back(p.daughter2());
+    for (int i = 0; i <= 1; ++i) {
+	int iDau = dau[i];
         if (iDau <= 0 || iDau >= event.size()) continue;
 
         const auto& d = event[iDau];
@@ -157,9 +195,14 @@ void getJets(Event& event,vector<int> partons, vector<vector<int>>& jets){
         std::vector<int> all_products;
         for(int i=0; i< partons.size();i++){
                 const auto& p = event[partons[i]];
+		//cout<<"final parton "<<partons[i]<< ", id "<<p.id()<<endl;
                 std::vector<int> stableproducts_fp;
                 getStableDescendants(event,partons[i],stableproducts_fp);
                 if(have_common_elements(all_products,stableproducts_fp)){
+			//for(int j=0;j<stableproducts_fp.size();j++){
+                        //        cout<<stableproducts_fp[j]<<" ";
+                        //}
+			//cout<<"overlapping with existing jets "<<endl;
                         continue;
                 }
                 else{
@@ -194,12 +237,30 @@ public:
         assert(evt.pythiaEventReady);
 	assert(!evt.genJetsReady);
 	std::vector<int> prompt_indices = getPartonIndicesFromTTbar(*evt.pythiaEvent);
+	cout<<"start event"<<endl;
+	//printFinalPariclesFromTTBar(*evt.pythiaEvent);
+	//std::vector<int> finalparton_wholeevent_indices = printFinalPartonsFromWholeEvent(*evt.pythiaEvent);
+	//cout<<"Jets from final partons in the whole event "<<endl;
+	//vector<vector<int>> jets_wholeevent;
+	//getJets(*evt.pythiaEvent,finalparton_wholeevent_indices, jets_wholeevent);
 	for(int i=0; i < 6; i++){
+		cout<<"parton "<<i<<", index "<<prompt_indices[i]<<endl;
 		std::vector<int> finalpartons;
 		getFinalPartonDescendants(*evt.pythiaEvent, prompt_indices[i], finalpartons);
 		evt.promptPartons.insert(evt.promptPartons.end(),finalpartons.begin(),finalpartons.end());
 	}
+	//cout<<"Final partons from TTbar "<<endl;
+	//for(int i=0; i < evt.promptPartons.size(); i++){
+	//	cout<<evt.promptPartons[i]<<" ";
+	//}
+	//cout<<endl;
+	//cout<<"number of final partons from TTbar "<<evt.promptPartons.size()<<endl;
+
+	cout<<"Jets from final partons from TTbar"<<endl;
 	getJets(*evt.pythiaEvent,evt.promptPartons, evt.genClusters);
+	//cout<<"Jets from prompt partons "<<endl;
+	//vector<vector<int>> jets_prompt;
+	//getJets(*evt.pythiaEvent,prompt_indices, jets_prompt);
 	//cout<<"debug "<< "prompt_indices.size()"<<prompt_indices.size()<<endl;
 	//cout<<"debug evt.pythiaEvent->size() "<<evt.pythiaEvent->size()<<endl;
         evt.genJetsReady = true;

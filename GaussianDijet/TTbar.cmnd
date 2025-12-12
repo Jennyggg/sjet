@@ -1,5 +1,5 @@
 ! Main:numberOfEvents = 1        ! number of events to generate
-Random:seed = 42
+Random:seed = 1
 ! 2) Settings related to the incoming beams
 Beams:idA = 2212                   ! first beam, p = 2212, pbar = -2212
 Beams:idB = 2212                   ! second beam, p = 2212, pbar = -2212
